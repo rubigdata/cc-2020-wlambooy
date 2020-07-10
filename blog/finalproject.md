@@ -72,8 +72,8 @@ I edited the WARC collector script to collect song from the 2019 iteration of th
 
 *This table contains the most used chords for the Top 2000 of 1999 and 2019 separately. The values assigned to the chords for are relative per year since the input set sizes differ.*
 
-| Rank | 1999 (Chord,Value) | 2019 (Chord,Value) |
-|------|--------------------|--------------------|
+| Rank | 1999 (Chord,Value)     | 2019 (Chord,Value)     |
+|------|------------------------|------------------------|
 | 1    | (**G**,91.76782)       | (**G**,180.51779)      |
 | 2    | (**C**,86.98074)       | (**C**,156.6589)       |
 | 3    | (**D**,82.46628)       | (**D**,140.5357)       |
@@ -142,7 +142,7 @@ The final run that succeeded in giving output took a whopping 13 and a half hour
 *This table contains the most used consecutive chord sequences of lenght 2 for the Top 2000 of 2019 together with their relative values (higher = more common).*
 
 | Rank | Chord Sequence | Value |
-|------|-------------|-----------|
+|------|:-----------:|-----------|
 | 1    | C → G       | 64.09691  |
 | 2    | G → D       | 53.729744 |
 | 3    | G → C       | 48.07283  |
