@@ -1,0 +1,901 @@
+﻿{
+  "paragraphs": [
+    {
+      "text": "%md\n# WARC for Spark II\n\nThis notebook will help you analyze WARC files using Apache Spark. Companion notebook _CC-INDEX Example_ simplifies the process of collecting a sample of WARC files to work with.\n\nFirst a heads-up: to make things work for the course on the AWS EMR cluster, we could not avoid having to replace the old SURFsara & JWAT packages by the newer (and cleaner, easier to understand) implementation of the Hadoop WarcReader in [`HadoopConcatGz`](https://github.com/helgeho/HadoopConcatGz) - although I had to fix some bugs, and it is not extremely robust either. To parse and represent WARC Files it uses the [`webarchive-commons`](https://github.com/iipc/webarchive-commons) library provided through the IIPC, the [International Internet Preservation Consortium](http://netpreserve.org/). The `WarcRecord` classes used have however, unfortunately, a slightly different API than that of the JWAT package - you will have to modify code that you produced using the notebook from part I accordingly.",
+      "user": "anonymous",
+      "dateUpdated": "2020-06-30T01:33:13+0000",
+      "config": {
+        "editorSetting": {
+          "language": "text",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/text",
+        "fontSize": 9,
+        "editorHide": true,
+        "runOnSelectionChange": true,
+        "title": false,
+        "checkEmpty": true,
+        "results": {},
+        "enabled": true
+      },
+      "settings": {
+        "params": {
+          "uname": "arjen"
+        },
+        "forms": {}
+      },
+      "results": {
+        "code": "SUCCESS",
+        "msg": [
+          {
+            "type": "HTML",
+            "data": "<div class=\"markdown-body\">\n<h1>WARC for Spark II</h1>\n<p>This notebook will help you analyze WARC files using Apache Spark. Companion notebook <em>CC-INDEX Example</em> simplifies the process of collecting a sample of WARC files to work with.</p>\n<p>First a heads-up: to make things work for the course on the AWS EMR cluster, we could not avoid having to replace the old SURFsara &amp; JWAT packages by the newer (and cleaner, easier to understand) implementation of the Hadoop WarcReader in <a href=\"https://github.com/helgeho/HadoopConcatGz\"><code>HadoopConcatGz</code></a> - although I had to fix some bugs, and it is not extremely robust either. To parse and represent WARC Files it uses the <a href=\"https://github.com/iipc/webarchive-commons\"><code>webarchive-commons</code></a> library provided through the IIPC, the <a href=\"http://netpreserve.org/\">International Internet Preservation Consortium</a>. The <code>WarcRecord</code> classes used have however, unfortunately, a slightly different API than that of the JWAT package - you will have to modify code that you produced using the notebook from part I accordingly.</p>\n\n</div>"
+          }
+        ]
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1593480597241_912623319",
+      "id": "paragraph_1592823024747_-824845732",
+      "dateCreated": "2020-06-30T01:29:57+0000",
+      "dateStarted": "2020-06-30T01:33:10+0000",
+      "dateFinished": "2020-06-30T01:33:10+0000",
+      "status": "FINISHED",
+      "focus": true,
+      "$$hashKey": "object:9724"
+    },
+    {
+      "text": " // Sanity check to verify that Spark wants to run.\n spark.version",
+      "user": "anonymous",
+      "dateUpdated": "2020-06-30T01:33:41+0000",
+      "config": {
+        "editorSetting": {
+          "language": "scala",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/scala",
+        "fontSize": 9,
+        "runOnSelectionChange": true,
+        "title": false,
+        "checkEmpty": true,
+        "results": {},
+        "enabled": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "results": {
+        "code": "SUCCESS",
+        "msg": [
+          {
+            "type": "TEXT",
+            "data": "\u001b[1m\u001b[34mres1\u001b[0m: \u001b[1m\u001b[32mString\u001b[0m = 2.4.4\n"
+          }
+        ]
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1593480597241_984270915",
+      "id": "paragraph_1592823481545_-1436398742",
+      "dateCreated": "2020-06-30T01:29:57+0000",
+      "dateStarted": "2020-06-30T01:33:41+0000",
+      "dateFinished": "2020-06-30T01:33:50+0000",
+      "status": "FINISHED",
+      "$$hashKey": "object:9725"
+    },
+    {
+      "text": "// A different more robust approach\n// Using https://github.com/helgeho/HadoopConcatGz to replace current WarcInputFormat\n\n// Class definitions we need in the remainder:\n//\nimport org.apache.hadoop.io.NullWritable\nimport de.l3s.concatgz.io.warc.{WarcGzInputFormat,WarcWritable}\nimport de.l3s.concatgz.data.WarcRecord",
+      "user": "anonymous",
+      "dateUpdated": "2020-06-30T01:33:53+0000",
+      "config": {
+        "editorSetting": {
+          "language": "scala",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/scala",
+        "fontSize": 9,
+        "runOnSelectionChange": true,
+        "title": false,
+        "checkEmpty": true,
+        "results": {},
+        "enabled": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "results": {
+        "code": "SUCCESS",
+        "msg": [
+          {
+            "type": "TEXT",
+            "data": "import org.apache.hadoop.io.NullWritable\nimport de.l3s.concatgz.io.warc.{WarcGzInputFormat, WarcWritable}\nimport de.l3s.concatgz.data.WarcRecord\n"
+          }
+        ]
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1593480597241_1379044316",
+      "id": "paragraph_1592938117750_-1528398619",
+      "dateCreated": "2020-06-30T01:29:57+0000",
+      "dateStarted": "2020-06-30T01:33:53+0000",
+      "dateFinished": "2020-06-30T01:33:53+0000",
+      "status": "FINISHED",
+      "$$hashKey": "object:9726"
+    },
+    {
+      "text": "%md\n## HDFS\n\nYou need a single-node emulated HDFS cluster on your local machine to play with the data. Follow the instructions from the [Hadoop 3.2.1 documentation](https://hadoop.apache.org/docs/r3.2.1/hadoop-project-dist/hadoop-common/SingleCluster.html) (almost identical to assignment 2 in the course), replacing `arjen` by your account name on the cluster:\n\n```\ncd hadoop-3.2.1/\nhdfs namenode -format\nHDFS_NAMENODE_USER=root HDFS_DATANODE_USER=root HDFS_SECONDARYNAMENODE_USER=root sbin/start-dfs.sh\nhdfs dfs -mkdir -p /user/arjen\n```",
+      "user": "anonymous",
+      "dateUpdated": "2020-06-30T02:02:34+0000",
+      "config": {
+        "colWidth": 12,
+        "fontSize": 9,
+        "enabled": true,
+        "results": {},
+        "editorSetting": {
+          "language": "text",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "editorMode": "ace/mode/text",
+        "editorHide": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "results": {
+        "code": "SUCCESS",
+        "msg": [
+          {
+            "type": "HTML",
+            "data": "<div class=\"markdown-body\">\n<h2>HDFS</h2>\n<p>You need a single-node emulated HDFS cluster on your local machine to play with the data. Follow the instructions from the <a href=\"https://hadoop.apache.org/docs/r3.2.1/hadoop-project-dist/hadoop-common/SingleCluster.html\">Hadoop 3.2.1 documentation</a> (almost identical to assignment 2 in the course), replacing <code>arjen</code> by your account name on the cluster:</p>\n<pre><code>cd hadoop-3.2.1/\nhdfs namenode -format\nHDFS_NAMENODE_USER=root HDFS_DATANODE_USER=root HDFS_SECONDARYNAMENODE_USER=root sbin/start-dfs.sh\nhdfs dfs -mkdir -p /user/arjen\n</code></pre>\n\n</div>"
+          }
+        ]
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1593481771733_-1472426546",
+      "id": "paragraph_1593481771733_-1472426546",
+      "dateCreated": "2020-06-30T01:49:31+0000",
+      "dateStarted": "2020-06-30T02:02:32+0000",
+      "dateFinished": "2020-06-30T02:02:32+0000",
+      "status": "FINISHED",
+      "$$hashKey": "object:9727"
+    },
+    {
+      "text": "%md\nTake the small test WARC file you used already and put it in HDFS under this directory:\n\n    hdfs dfs -put /data/course.warc.gz hdfs:/user/arjen\n    \n_Of course, eventually, when running an assembled fat jar on the cluster, you will have to copy this file to `REDBAD`, e.g., using `scp -F redbad-ssh-config arjen@redbad:`, and put it in HDFS there too. (This example command only works on Linux after following the [student on the cluster](https://rubigdata.github.io/course/admin/emr-student-cluster.html) instructions to create the SSH config file.)_",
+      "user": "anonymous",
+      "dateUpdated": "2020-06-30T01:57:51+0000",
+      "config": {
+        "editorSetting": {
+          "language": "text",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/text",
+        "fontSize": 9,
+        "editorHide": true,
+        "runOnSelectionChange": true,
+        "title": false,
+        "checkEmpty": true,
+        "results": {},
+        "enabled": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "results": {
+        "code": "SUCCESS",
+        "msg": [
+          {
+            "type": "HTML",
+            "data": "<div class=\"markdown-body\">\n<p>Take the small test WARC file you used already and put it in HDFS under this directory:</p>\n<pre><code>hdfs dfs -put /data/course.warc.gz hdfs:/user/arjen\n</code></pre>\n<p><em>Of course, eventually, when running an assembled fat jar on the cluster, you will have to copy this file to <code>REDBAD</code>, e.g., using <code>scp -F redbad-ssh-config arjen@redbad:</code>, and put it in HDFS there too. (This example command only works on Linux after following the <a href=\"https://rubigdata.github.io/course/admin/emr-student-cluster.html\">student on the cluster</a> instructions to create the SSH config file.)</em></p>\n\n</div>"
+          }
+        ]
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1593480597241_1228453648",
+      "id": "paragraph_1592830592263_-1860588063",
+      "dateCreated": "2020-06-30T01:29:57+0000",
+      "dateStarted": "2020-06-30T01:57:50+0000",
+      "dateFinished": "2020-06-30T01:57:50+0000",
+      "status": "FINISHED",
+      "$$hashKey": "object:9728"
+    },
+    {
+      "text": "// For running this on the cluster, you will leave out localhost:9001!\nval uname = z.textbox(\"Username:\")\nval warcfile = s\"hdfs://localhost:9001/user/$uname/course.warc.gz\"",
+      "user": "anonymous",
+      "dateUpdated": "2020-06-30T02:01:31+0000",
+      "config": {
+        "editorSetting": {
+          "language": "scala",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/scala",
+        "fontSize": 9,
+        "runOnSelectionChange": true,
+        "title": false,
+        "checkEmpty": true,
+        "results": {},
+        "enabled": true
+      },
+      "settings": {
+        "params": {
+          "uname=arjen": "arjen",
+          "Username:": "arjen"
+        },
+        "forms": {
+          "Username:": {
+            "type": "TextBox",
+            "name": "Username:",
+            "displayName": "Username:",
+            "defaultValue": "",
+            "hidden": false,
+            "$$hashKey": "object:9970"
+          }
+        }
+      },
+      "results": {
+        "code": "SUCCESS",
+        "msg": [
+          {
+            "type": "TEXT",
+            "data": "\u001b[1m\u001b[34muname\u001b[0m: \u001b[1m\u001b[32mObject\u001b[0m = arjen\n\u001b[1m\u001b[34mwarcfile\u001b[0m: \u001b[1m\u001b[32mString\u001b[0m = hdfs://localhost:9001/user/arjen/course.warc.gz\n"
+          }
+        ]
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1593480597241_28714475",
+      "id": "paragraph_1593006243066_-1927711322",
+      "dateCreated": "2020-06-30T01:29:57+0000",
+      "dateStarted": "2020-06-30T02:01:31+0000",
+      "dateFinished": "2020-06-30T02:01:31+0000",
+      "status": "FINISHED",
+      "$$hashKey": "object:9729"
+    },
+    {
+      "text": "val warcs = sc.newAPIHadoopFile(\n              warcfile,\n              classOf[WarcGzInputFormat],             // InputFormat\n              classOf[NullWritable],                  // Key\n              classOf[WarcWritable]                   // Value\n    ).cache()",
+      "user": "anonymous",
+      "dateUpdated": "2020-06-30T02:03:48+0000",
+      "config": {
+        "editorSetting": {
+          "language": "scala",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/scala",
+        "fontSize": 9,
+        "runOnSelectionChange": true,
+        "title": false,
+        "checkEmpty": true,
+        "results": {},
+        "enabled": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "results": {
+        "code": "SUCCESS",
+        "msg": [
+          {
+            "type": "TEXT",
+            "data": "\u001b[1m\u001b[34mwarcs\u001b[0m: \u001b[1m\u001b[32morg.apache.spark.rdd.RDD[(org.apache.hadoop.io.NullWritable, de.l3s.concatgz.io.warc.WarcWritable)]\u001b[0m = hdfs://localhost:9001/user/arjen/course.warc.gz NewHadoopRDD[9] at newAPIHadoopFile at <console>:30\n"
+          }
+        ]
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1593480597242_1867931876",
+      "id": "paragraph_1592831713950_444986670",
+      "dateCreated": "2020-06-30T01:29:57+0000",
+      "dateStarted": "2020-06-30T02:03:48+0000",
+      "dateFinished": "2020-06-30T02:03:48+0000",
+      "status": "FINISHED",
+      "$$hashKey": "object:9730"
+    },
+    {
+      "text": "%md \n## Sanity Check\n\nLet's count the number of records and assign it to variable `nHTML` for later reuse.",
+      "user": "anonymous",
+      "dateUpdated": "2020-06-30T01:29:57+0000",
+      "config": {
+        "editorSetting": {
+          "language": "text",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/text",
+        "fontSize": 9,
+        "editorHide": true,
+        "runOnSelectionChange": true,
+        "title": false,
+        "checkEmpty": true,
+        "results": {},
+        "enabled": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "results": {
+        "code": "SUCCESS",
+        "msg": [
+          {
+            "type": "HTML",
+            "data": "<h2>Sanity Check</h2>\n<p>Let's count the number of records and assign it to variable <code>nHTML</code> for later reuse.</p>\n"
+          }
+        ]
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1593480597242_1942222408",
+      "id": "paragraph_1593038933396_-1289460084",
+      "dateCreated": "2020-06-30T01:29:57+0000",
+      "status": "READY",
+      "$$hashKey": "object:9731"
+    },
+    {
+      "text": "val nHTML = warcs.count()",
+      "user": "anonymous",
+      "dateUpdated": "2020-06-30T02:03:50+0000",
+      "config": {
+        "editorSetting": {
+          "language": "scala",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/scala",
+        "fontSize": 9,
+        "runOnSelectionChange": true,
+        "title": false,
+        "checkEmpty": true,
+        "results": {},
+        "enabled": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "results": {
+        "code": "SUCCESS",
+        "msg": [
+          {
+            "type": "TEXT",
+            "data": "\u001b[1m\u001b[34mnHTML\u001b[0m: \u001b[1m\u001b[32mLong\u001b[0m = 55\n"
+          }
+        ]
+      },
+      "apps": [],
+      "runtimeInfos": {
+        "jobUrl": {
+          "propertyName": "jobUrl",
+          "label": "SPARK JOB",
+          "tooltip": "View in Spark web UI",
+          "group": "spark",
+          "values": [
+            {
+              "jobUrl": "http://bcf7cfff1a19:4040/jobs/job?id=2",
+              "$$hashKey": "object:10712"
+            }
+          ],
+          "interpreterSettingId": "spark"
+        }
+      },
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1593480597242_1470444307",
+      "id": "paragraph_1592831870167_66225697",
+      "dateCreated": "2020-06-30T01:29:57+0000",
+      "dateStarted": "2020-06-30T02:03:50+0000",
+      "dateFinished": "2020-06-30T02:03:51+0000",
+      "status": "FINISHED",
+      "$$hashKey": "object:9732"
+    },
+    {
+      "text": "%md\nLooks like we can get our collection of WARC files into a format we can manage!\n\n[Helge Holzman](https://github.com/helgeho) wrote the code to process the WARC files in Hadoop and Spark _(fun fact: he gave a guest lecture in the course before he completed his PhD and started to work for the Internet Archive)_. Helge reused the IIPC toolkit for working with WARC files. Useful pointers to help you work with these classes quickly:\n+ [`WarcRecord`](https://github.com/helgeho/HadoopConcatGz/blob/master/src/main/java/de/l3s/concatgz/data/WarcRecord.java) wrapper for IIPC classes;\n+ IIPCs [`WarcRecord`](https://github.com/iipc/webarchive-commons/blob/master/src/main/java/org/archive/io/warc/WARCRecord.java) and [`ArchiveRecord`](https://github.com/iipc/webarchive-commons/blob/master/src/main/java/org/archive/io/ArchiveRecord.java) classes for handling the records;\n+ [`ArchiveRecordHeader`](https://github.com/iipc/webarchive-commons/blob/master/src/main/java/org/archive/io/ArchiveRecordHeader.java) for their headers.\n\n_A brief warning: WARC records have headers, but they can also include HTTP headers, which are two different things that are easily mixed up._",
+      "user": "anonymous",
+      "dateUpdated": "2020-06-30T02:03:21+0000",
+      "config": {
+        "editorSetting": {
+          "language": "text",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/text",
+        "fontSize": 9,
+        "editorHide": true,
+        "runOnSelectionChange": true,
+        "title": false,
+        "checkEmpty": true,
+        "results": {},
+        "enabled": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "results": {
+        "code": "SUCCESS",
+        "msg": [
+          {
+            "type": "HTML",
+            "data": "<div class=\"markdown-body\">\n<p>Looks like we can get our collection of WARC files into a format we can manage!</p>\n<p><a href=\"https://github.com/helgeho\">Helge Holzman</a> wrote the code to process the WARC files in Hadoop and Spark <em>(fun fact: he gave a guest lecture in the course before he completed his PhD and started to work for the Internet Archive)</em>. Helge reused the IIPC toolkit for working with WARC files. Useful pointers to help you work with these classes quickly:</p>\n<ul>\n<li><a href=\"https://github.com/helgeho/HadoopConcatGz/blob/master/src/main/java/de/l3s/concatgz/data/WarcRecord.java\"><code>WarcRecord</code></a> wrapper for IIPC classes;</li>\n<li>IIPCs <a href=\"https://github.com/iipc/webarchive-commons/blob/master/src/main/java/org/archive/io/warc/WARCRecord.java\"><code>WarcRecord</code></a> and <a href=\"https://github.com/iipc/webarchive-commons/blob/master/src/main/java/org/archive/io/ArchiveRecord.java\"><code>ArchiveRecord</code></a> classes for handling the records;</li>\n<li><a href=\"https://github.com/iipc/webarchive-commons/blob/master/src/main/java/org/archive/io/ArchiveRecordHeader.java\"><code>ArchiveRecordHeader</code></a> for their headers.</li>\n</ul>\n<p><em>A brief warning: WARC records have headers, but they can also include HTTP headers, which are two different things that are easily mixed up.</em></p>\n\n</div>"
+          }
+        ]
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1593480597242_-1528274347",
+      "id": "paragraph_1593038995867_1973163077",
+      "dateCreated": "2020-06-30T01:29:57+0000",
+      "dateStarted": "2020-06-30T02:03:21+0000",
+      "dateFinished": "2020-06-30T02:03:21+0000",
+      "status": "FINISHED",
+      "$$hashKey": "object:9733"
+    },
+    {
+      "text": "// What's in the headers?\nval whs = \n     warcs.map{ wr => wr._2 }.\n        filter{ _.isValid() }.\n        map{ _.getRecord().getHeader() }.\n        filter{ _.getHeaderValue(\"WARC-Type\") == \"response\" }.\n        map{ wh => (wh.getDate(), wh.getUrl(), wh.getContentLength(), wh.getMimetype() ) }.\n        take(10).foreach(println)\n        ",
+      "user": "anonymous",
+      "dateUpdated": "2020-06-30T02:05:51+0000",
+      "config": {
+        "editorSetting": {
+          "language": "scala",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/scala",
+        "fontSize": 9,
+        "editorHide": false,
+        "runOnSelectionChange": true,
+        "title": false,
+        "checkEmpty": true,
+        "results": {
+          "0": {
+            "graph": {
+              "mode": "table",
+              "height": 487.55,
+              "optionOpen": false
+            }
+          }
+        },
+        "enabled": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "results": {
+        "code": "SUCCESS",
+        "msg": [
+          {
+            "type": "TEXT",
+            "data": "(2020-06-08T23:48:04Z,<http://rubigdata.github.io/course/>,662,application/http;msgtype=response)\n(2020-06-08T23:48:04Z,<https://rubigdata.github.io/course/>,8037,application/http;msgtype=response)\n(2020-06-08T23:48:04Z,<https://rubigdata.github.io/robots.txt>,9983,application/http;msgtype=response)\n(2020-06-08T23:48:04Z,<https://rubigdata.github.io/course/assets/themes/twitter/bootstrap/css/bootstrap.2.2.2.min.css>,113073,application/http;msgtype=response)\n(2020-06-08T23:48:04Z,<https://rubigdata.github.io/course/assets/themes/twitter/css/style.css?body=1>,1695,application/http;msgtype=response)\n(2020-06-08T23:48:04Z,<https://rubigdata.github.io/course/assets/themes/twitter/css/kbroman.css>,798,application/http;msgtype=response)\n(2020-06-08T23:48:05Z,<https://rubigdata.github.io/course/assets/themes/twitter/css/arjenpdevries.css>,876,application/http;msgtype=response)\n(2020-06-08T23:48:05Z,<https://rubigdata.github.io/coursenil>,10004,application/http;msgtype=response)\n(2020-06-08T23:48:05Z,<https://rubigdata.github.io/course>,683,application/http;msgtype=response)\n(2020-06-08T23:48:05Z,<https://rubigdata.github.io/course/assignments/A1a-blogging.html>,10237,application/http;msgtype=response)\n\u001b[1m\u001b[34mwhs\u001b[0m: \u001b[1m\u001b[32mUnit\u001b[0m = ()\n"
+          }
+        ]
+      },
+      "apps": [],
+      "runtimeInfos": {
+        "jobUrl": {
+          "propertyName": "jobUrl",
+          "label": "SPARK JOB",
+          "tooltip": "View in Spark web UI",
+          "group": "spark",
+          "values": [
+            {
+              "jobUrl": "http://bcf7cfff1a19:4040/jobs/job?id=8",
+              "$$hashKey": "object:10826"
+            }
+          ],
+          "interpreterSettingId": "spark"
+        }
+      },
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1593480597242_-65823767",
+      "id": "paragraph_1592831340611_263906283",
+      "dateCreated": "2020-06-30T01:29:57+0000",
+      "dateStarted": "2020-06-30T02:05:51+0000",
+      "dateFinished": "2020-06-30T02:05:51+0000",
+      "status": "FINISHED",
+      "$$hashKey": "object:9734"
+    },
+    {
+      "text": "%md\nWhen you look at the actual records, these include CSS and images which should have had a different mime-type... \n\n_I think..._ (my standards knowledge is clearly not up to standards!).\n\nIf you study the support classes in more detail, you find other methods that give more detail; for example, we can get more precise info about the mime-type by extracting the `Content-Type` from `WarcRecord`'s `getHttpHeaders` method.",
+      "user": "anonymous",
+      "dateUpdated": "2020-06-30T01:29:57+0000",
+      "config": {
+        "editorSetting": {
+          "language": "text",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/text",
+        "fontSize": 9,
+        "editorHide": true,
+        "runOnSelectionChange": true,
+        "title": false,
+        "checkEmpty": true,
+        "results": {},
+        "enabled": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "results": {
+        "code": "SUCCESS",
+        "msg": [
+          {
+            "type": "HTML",
+            "data": "<p>When you look at the actual records, these include CSS and images which should have had a different mime-type&hellip;</p>\n<p><em>I think&hellip;</em> (my standards knowledge is clearly not up to standards!).</p>\n<p>If you study the support classes in more detail, you find other methods that give more detail; for example, we can get more precise info about the mime-type by extracting the <code>Content-Type</code> from <code>WarcRecord</code>'s <code>getHttpHeaders</code> method.</p>\n"
+          }
+        ]
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1593480597242_547610091",
+      "id": "paragraph_1593050226037_753695328",
+      "dateCreated": "2020-06-30T01:29:57+0000",
+      "status": "READY",
+      "$$hashKey": "object:9735"
+    },
+    {
+      "text": "// What are the non-text content-type records that were recorded in the crawl?\nval wh = warcs.\n        map{ wr => wr._2.getRecord() }.\n        filter{ _.isHttp() }.\n        map{ wr => (wr.getHeader().getUrl(),wr.getHttpHeaders().get(\"Content-Type\")) }.\n        filter{ \n            case(k,v) => v match { \n                case null => false\n                case _ => v.startsWith(\"application\") }\n        }.\n        take(20).foreach{ println }\n",
+      "user": "anonymous",
+      "dateUpdated": "2020-06-30T02:04:00+0000",
+      "config": {
+        "editorSetting": {
+          "language": "scala",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/scala",
+        "fontSize": 9,
+        "runOnSelectionChange": true,
+        "title": false,
+        "checkEmpty": true,
+        "results": {},
+        "enabled": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "results": {
+        "code": "SUCCESS",
+        "msg": [
+          {
+            "type": "TEXT",
+            "data": "(<https://rubigdata.github.io/course/assignments/stream.py>,application/octet-stream)\n(<https://rubigdata.github.io/course/background/hdfs-site.xml>,application/xml)\n\u001b[1m\u001b[34mwh\u001b[0m: \u001b[1m\u001b[32mUnit\u001b[0m = ()\n"
+          }
+        ]
+      },
+      "apps": [],
+      "runtimeInfos": {
+        "jobUrl": {
+          "propertyName": "jobUrl",
+          "label": "SPARK JOB",
+          "tooltip": "View in Spark web UI",
+          "group": "spark",
+          "values": [
+            {
+              "jobUrl": "http://bcf7cfff1a19:4040/jobs/job?id=4",
+              "$$hashKey": "object:10940"
+            }
+          ],
+          "interpreterSettingId": "spark"
+        }
+      },
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1593480597242_1910042816",
+      "id": "paragraph_1593051120780_876755312",
+      "dateCreated": "2020-06-30T01:29:57+0000",
+      "dateStarted": "2020-06-30T02:04:00+0000",
+      "dateFinished": "2020-06-30T02:04:01+0000",
+      "status": "FINISHED",
+      "$$hashKey": "object:9736"
+    },
+    {
+      "text": "%md\nLet's now look into the data itself!\n\nThe data is going to be messy, especially in the real crawl, so you have to determine carefully how much processing you want to actually carry out, and on which data. E.g., the filter in the previous query would be better to apply here too (but inversely), as you will see that string functions are also applied to image content _(so this is just to illustrate, do not just copy into your project but rework the example)_.",
+      "user": "anonymous",
+      "dateUpdated": "2020-06-30T01:29:57+0000",
+      "config": {
+        "editorSetting": {
+          "language": "text",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/text",
+        "fontSize": 9,
+        "editorHide": true,
+        "runOnSelectionChange": true,
+        "title": false,
+        "checkEmpty": true,
+        "results": {},
+        "enabled": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "results": {
+        "code": "SUCCESS",
+        "msg": [
+          {
+            "type": "HTML",
+            "data": "<p>Let's now look into the data itself!</p>\n<p>The data is going to be messy, especially in the real crawl, so you have to determine carefully how much processing you want to actually carry out, and on which data. E.g., the filter in the previous query would be better to apply here too (but inversely), as you will see that string functions are also applied to image content <em>(so this is just to illustrate, do not just copy into your project but rework the example)</em>.</p>\n"
+          }
+        ]
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1593480597242_1763967887",
+      "id": "paragraph_1593052525269_-733387182",
+      "dateCreated": "2020-06-30T01:29:57+0000",
+      "status": "READY",
+      "$$hashKey": "object:9737"
+    },
+    {
+      "text": "import org.apache.commons.lang3.StringUtils\nval wb = warcs.\n            map{ wr => wr._2.getRecord().getHttpStringBody()}.\n            filter{ _.length > 0 }.\n            map{ wb => StringUtils.normalizeSpace(StringUtils.substring(wb, 0, 255)) }.\n            take(20).foreach(println)",
+      "user": "anonymous",
+      "dateUpdated": "2020-06-30T02:06:18+0000",
+      "config": {
+        "editorSetting": {
+          "language": "scala",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/scala",
+        "fontSize": 9,
+        "runOnSelectionChange": true,
+        "title": false,
+        "checkEmpty": true,
+        "results": {},
+        "enabled": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "results": {
+        "code": "SUCCESS",
+        "msg": [
+          {
+            "type": "TEXT",
+            "data": "<html> <head><title>301 Moved Permanently</title></head> <body> <center><h1>301 Moved Permanently</h1></center> <hr><center>nginx</center> </body> </html>\n<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"utf-8\"> <title>Course Information</title> <meta name=\"description\" content=\"RU Big Data course information and overall structure\"> <meta name=\"author\" content=\"Arjen P. de Vries\">\n<!DOCTYPE html> <html> <head> <meta http-equiv=\"Content-type\" content=\"text/html; charset=utf-8\"> <meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'unsafe-inline'; img-src data:; connect-src 'self'\"> <title>P\n/*! * Bootstrap v2.2.2 * * Copyright 2012 Twitter, Inc * Licensed under the Apache License v2.0 * http://www.apache.org/licenses/LICENSE-2.0 * * Designed and built with all the love in the world @twitter by @mdo and @fat. */ .clearfix{*zoom:1;}.cl\n/* Custom container */ .container-narrow { margin: 0 auto; max-width: 700px; } .container-narrow > hr { margin: 30px 0; } .navbar .nav { float: right; } /* posts index */ .post > h3.title { position: relative; padding-top: 10px; } .post >\ncode { padding: 0; font-size: 90%; color: black; background-color: white; border: 0px solid white; } a code { color: #08c; }\n/* Table rendering */ th, td { padding: 15px; border-bottom: 1px solid #ddd; } tr:nth-child(even) {background-color: #f2f2f2} th { background-color: gray; color: white; } th, td { font-size: 90%; }\n<!DOCTYPE html> <html> <head> <meta http-equiv=\"Content-type\" content=\"text/html; charset=utf-8\"> <meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'unsafe-inline'; img-src data:; connect-src 'self'\"> <title>P\n<html> <head><title>301 Moved Permanently</title></head> <body> <center><h1>301 Moved Permanently</h1></center> <hr><center>nginx</center> </body> </html>\n<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"utf-8\"> <title>Assignment 1a</title> <meta name=\"description\" content=\"Setting up the blogging environment that will be used for handing in the practical work\"> <meta name=\"author\"\n<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"utf-8\"> <title>Assignment 1B</title> <meta name=\"description\" content=\"First steps using Docker\"> <meta name=\"author\" content=\"Arjen P. de Vries\"> <!-- New stuff, copied from\n<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"utf-8\"> <title>Map Reduce</title> <meta name=\"description\" content=\"Learn how the abstract concepts from the lectures so far work out in practice.\"> <meta name=\"author\" content=\"Ar\n<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"utf-8\"> <title>Spark</title> <meta name=\"description\" content=\"Use the different Spark APIs in practice and understand their inner workings.\"> <meta name=\"author\" content=\"Arjen P.\n<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"utf-8\"> <title>Assignment 3 Part A</title> <meta name=\"author\" content=\"Arjen P. de Vries\"> <!-- New stuff, copied from http://www.w3schools.com/bootstrap --> <meta name=\n<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"utf-8\"> <title>Assignment 3 Part B</title> <meta name=\"description\" content=\"Spark Data Frame API\"> <meta name=\"author\" content=\"Arjen P. de Vries\"> <!-- New stuff, copied fro\n<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"utf-8\"> <title>Assignment 4</title> <meta name=\"description\" content=\"Hackathon following the BDR guest lecture on Recommendation Systems\"> <meta name=\"author\" content=\"Arjen P. de\n<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"utf-8\"> <title>Stream Processing</title> <meta name=\"description\" content=\"Use the Spark Streaming API to perform real time data analysis.\"> <meta name=\"author\" content=\"Arjen P. d\n�PNG \u001a \u0000\u0000\u0000 IHDR\u0000\u0000\u0001�\u0000\u0000\u0000�\b\u0004\u0000\u0000\u0000\u0005\u0004��\u0000\u0000\u0000\u0019tEXtSoftware\u0000Adobe ImageReadyq�e<\u0000\u00001�IDATx��}ml\\E��W��^ɺ�D$|n w'��;vю�8�m0��k<f�8ـ�\u000e\u0013<�h3$� \u0012\b b,mn�� � ғ\u0011\u0017��\u0012��0�� L Y`6s' >\u0006\u0014�Q\u0002\u0001��� ���S������n�S�V�;1K�G���s�ԩ�>Uo���TU�1cƖ�Yuּ��c��a&���#C,pؚ�\u0012\u0014�>kں \u0017����U�LW \u000f-s�\n�PNG \u001a \u0000\u0000\u0000 IHDR\u0000\u0000\u0001�\u0000\u0000\u0000�\b\u0003\u0000\u0000\u0000�ӳ{\u0000\u0000\u0002�PLTE���\u0000\u0000\u0000\u0000\u0000\u0000������\u0000\u0000\u0000������mmm\u0000\u0000\u0000���������\u0000\u0000\u0000\u0000\u0000\u0000������������\u0000\u0000\u0000���\u0000\u0000\u0000\u0000\u0000\u0000���������\u0000\u0000\u0000���������������������\u0000\u0000\u0000\u0000\u0000\u0000������\u0000\u0000\u0000��ⰰ�������������������\u0000\u0000\u0000���\u0000\u0000\u0000���\u0000\u0000\u0000��������������������ᒒ�������������ttt������\u0000\u0000\u0000��󻻻�����������\n<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"utf-8\"> <title>Hadoop</title> <meta name=\"description\" content=\"Explanations to install and run Hadoop\"> <meta name=\"author\" content=\"Arjen P. de Vries\"> <!-- New stuff, copie\nimport org.apache.commons.lang3.StringUtils\n\u001b[1m\u001b[34mwb\u001b[0m: \u001b[1m\u001b[32mUnit\u001b[0m = ()\n"
+          }
+        ]
+      },
+      "apps": [],
+      "runtimeInfos": {
+        "jobUrl": {
+          "propertyName": "jobUrl",
+          "label": "SPARK JOB",
+          "tooltip": "View in Spark web UI",
+          "group": "spark",
+          "values": [
+            {
+              "jobUrl": "http://bcf7cfff1a19:4040/jobs/job?id=9",
+              "$$hashKey": "object:11054"
+            }
+          ],
+          "interpreterSettingId": "spark"
+        }
+      },
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1593480597243_1472276465",
+      "id": "paragraph_1593042133397_-1898249258",
+      "dateCreated": "2020-06-30T01:29:57+0000",
+      "dateStarted": "2020-06-30T02:06:18+0000",
+      "dateFinished": "2020-06-30T02:06:18+0000",
+      "status": "FINISHED",
+      "$$hashKey": "object:9738"
+    },
+    {
+      "text": "%md\nUse [`Jsoup`](https://jsoup.org) to get access to an HTML parser, to obtain the values of specific tags, get rid of tags, _etc._\n\nIf you try to move access to using `Jsoup` clean code with functions defined with `def`, you may easily run into `Serialization` problems with Spark. Either fix them using the strategies in assignment three (open data), or work around these \"bugs\" by inlining more of your processing _(the latter is much easier)_. This [blog post](https://www.lihaoyi.com/post/ScrapingWebsitesusingScalaandJsoup.html) has some nice examples of using `Jsoup` in plain Scala, but not all examples carry over trivially - use it for inspiration perhaps.\n\nE.g., consider an impractically simple example to align document titles with the outgoing links from that document. \n\n_PS: The more interesting example of deriving the anchor text that points to a document is a much more challenging big data job... a nice problem to tackle really, but consider it advanced._",
+      "user": "anonymous",
+      "dateUpdated": "2020-06-30T01:29:57+0000",
+      "config": {
+        "editorSetting": {
+          "language": "text",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/text",
+        "fontSize": 9,
+        "editorHide": true,
+        "runOnSelectionChange": true,
+        "title": false,
+        "checkEmpty": true,
+        "results": {},
+        "enabled": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "results": {
+        "code": "SUCCESS",
+        "msg": [
+          {
+            "type": "HTML",
+            "data": "<p>Use <a href=\"https://jsoup.org\"><code>Jsoup</code></a> to get access to an HTML parser, to obtain the values of specific tags, get rid of tags, <em>etc.</em></p>\n<p>If you try to move access to using <code>Jsoup</code> clean code with functions defined with <code>def</code>, you may easily run into <code>Serialization</code> problems with Spark. Either fix them using the strategies in assignment three (open data), or work around these &ldquo;bugs&rdquo; by inlining more of your processing <em>(the latter is much easier)</em>. This <a href=\"https://www.lihaoyi.com/post/ScrapingWebsitesusingScalaandJsoup.html\">blog post</a> has some nice examples of using <code>Jsoup</code> in plain Scala, but not all examples carry over trivially - use it for inspiration perhaps.</p>\n<p>E.g., consider an impractically simple example to align document titles with the outgoing links from that document.</p>\n<p><em>PS: The more interesting example of deriving the anchor text that points to a document is a much more challenging big data job&hellip; a nice problem to tackle really, but consider it advanced.</em></p>\n"
+          }
+        ]
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1593480597243_-1069966829",
+      "id": "paragraph_1593054545694_-338423919",
+      "dateCreated": "2020-06-30T01:29:57+0000",
+      "status": "READY",
+      "$$hashKey": "object:9739"
+    },
+    {
+      "text": "import org.jsoup.Jsoup\nimport org.jsoup.nodes.{Document,Element}\nimport collection.JavaConverters._\n\nval wb = warcs.map{ wr => wr._2.getRecord().getHttpStringBody()}.\n               map{ wb => {\n                        val d = Jsoup.parse(wb)\n                        val t = d.title()\n                        val links = d.select(\"a\").asScala\n                        links.map(l => (t,l.attr(\"href\"))).toIterator\n                        //for(header <- h1) yield (header.attr(\"title\"), header.attr(\"href\"))\n                    }\n                }.\n                flatMap(identity)",
+      "user": "anonymous",
+      "dateUpdated": "2020-06-30T02:06:31+0000",
+      "config": {
+        "editorSetting": {
+          "language": "scala",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/scala",
+        "fontSize": 9,
+        "runOnSelectionChange": true,
+        "title": false,
+        "checkEmpty": true,
+        "results": {},
+        "enabled": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "results": {
+        "code": "SUCCESS",
+        "msg": [
+          {
+            "type": "TEXT",
+            "data": "import org.jsoup.Jsoup\nimport org.jsoup.nodes.{Document, Element}\nimport collection.JavaConverters._\n\u001b[1m\u001b[34mwb\u001b[0m: \u001b[1m\u001b[32morg.apache.spark.rdd.RDD[(String, String)]\u001b[0m = MapPartitionsRDD[43] at flatMap at <console>:44\n"
+          }
+        ]
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1593480597243_1761869781",
+      "id": "paragraph_1592839230886_-1709877039",
+      "dateCreated": "2020-06-30T01:29:57+0000",
+      "dateStarted": "2020-06-30T02:06:31+0000",
+      "dateFinished": "2020-06-30T02:06:32+0000",
+      "status": "FINISHED",
+      "$$hashKey": "object:9740"
+    },
+    {
+      "text": "// Inspect data:\nwb.take(50).foreach(println)",
+      "user": "anonymous",
+      "dateUpdated": "2020-06-30T02:06:37+0000",
+      "config": {
+        "editorSetting": {
+          "language": "scala",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/scala",
+        "fontSize": 9,
+        "runOnSelectionChange": true,
+        "title": false,
+        "checkEmpty": true,
+        "results": {},
+        "enabled": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "results": {
+        "code": "SUCCESS",
+        "msg": [
+          {
+            "type": "TEXT",
+            "data": "(Course Information,https://rubigdata.github.io/course)\n(Course Information,https://brightspace.ru.nl/d2l/home/88477)\n(Course Information,https://sis.ru.nl/osiris-student/OnderwijsCatalogusSelect.do?selectie=cursus&collegejaar=2019&cursus=NWI-IBC036)\n(Course Information,assignments/A1a-blogging.html)\n(Course Information,https://github.com/rubigdata/forum-2020)\n(Course Information,assignments/A1a-blogging.html)\n(Course Information,assignments/A1b-docker.html)\n(Course Information,assignments/A2-mapreduce.html)\n(Course Information,assignments/A3-spark.html)\n(Course Information,assignments/A3a-spark-rdd.html)\n(Course Information,assignments/A3b-spark-df.html)\n(Course Information,assignments/A4-bdr-hackathon.html)\n(Course Information,assignments/A5-streaming.html)\n(Course Information,https://arjenp.dev/)\n(Page not found · GitHub Pages,https://help.github.com/pages/)\n(Page not found · GitHub Pages,https://githubstatus.com)\n(Page not found · GitHub Pages,https://twitter.com/githubstatus)\n(Page not found · GitHub Pages,/)\n(Page not found · GitHub Pages,/)\n(Page not found · GitHub Pages,https://help.github.com/pages/)\n(Page not found · GitHub Pages,https://githubstatus.com)\n(Page not found · GitHub Pages,https://twitter.com/githubstatus)\n(Page not found · GitHub Pages,/)\n(Page not found · GitHub Pages,/)\n(Assignment 1a,https://rubigdata.github.io/course)\n(Assignment 1a,http://pages.github.com)\n(Assignment 1a,http://git-scm.com)\n(Assignment 1a,https://education.github.com/pack/join)\n(Assignment 1a,https://help.github.com/articles/git-and-github-learning-resources/)\n(Assignment 1a,http://mac.github.com)\n(Assignment 1a,http://windows.github.com)\n(Assignment 1a,https://missing.csail.mit.edu/)\n(Assignment 1a,https://classroom.github.com/a/-mxpLYgT)\n(Assignment 1a,https://github.com)\n(Assignment 1a,https://help.github.com/articles/using-jekyll-as-a-static-site-generator-with-github-pages/)\n(Assignment 1a,http://jmcglone.com/guides/github-pages/)\n(Assignment 1a,https://guides.github.com/features/mastering-markdown/)\n(Assignment 1a,https://daringfireball.net/projects/markdown/)\n(Assignment 1a,http://kramdown.gettalong.org/quickref.html)\n(Assignment 1a,https://classroom.github.com/classrooms/17478409-ru-big-data-course-2020)\n(Assignment 1a,https://arjenp.dev/)\n(Assignment 1B,https://rubigdata.github.io/course)\n(Assignment 1B,https://www.docker.com/)\n(Assignment 1B,https://docs.docker.com/engine/docker-overview/)\n(Assignment 1B,https://docs.docker.com/get-started/)\n(Assignment 1B,https://docs.docker.com/get-started/part2/)\n(Assignment 1B,https://www.docker.com/products/docker-engine)\n(Assignment 1B,https://podman.io/whatis.html)\n(Assignment 1B,https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/quick-start/enable-hyper-v)\n(Assignment 1B,https://nickjanetakis.com/blog/setting-up-docker-for-windows-and-wsl-to-work-flawlessly)\n"
+          }
+        ]
+      },
+      "apps": [],
+      "runtimeInfos": {
+        "jobUrl": {
+          "propertyName": "jobUrl",
+          "label": "SPARK JOB",
+          "tooltip": "View in Spark web UI",
+          "group": "spark",
+          "values": [
+            {
+              "jobUrl": "http://bcf7cfff1a19:4040/jobs/job?id=10",
+              "$$hashKey": "object:11225"
+            }
+          ],
+          "interpreterSettingId": "spark"
+        }
+      },
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1593480597243_1268684155",
+      "id": "paragraph_1593052739591_1014105460",
+      "dateCreated": "2020-06-30T01:29:57+0000",
+      "dateStarted": "2020-06-30T02:06:37+0000",
+      "dateFinished": "2020-06-30T02:06:37+0000",
+      "status": "FINISHED",
+      "$$hashKey": "object:9741"
+    }
+  ],
+  "name": "warc-for-spark-ii",
+  "id": "2FE96CGBM",
+  "defaultInterpreterGroup": "spark",
+  "version": "0.9.0-preview1",
+  "noteParams": {},
+  "noteForms": {},
+  "angularObjects": {},
+  "config": {
+    "isZeppelinNotebookCronEnable": false,
+    "looknfeel": "default",
+    "personalizedMode": "false"
+  },
+  "info": {},
+  "path": "/warc-for-spark-ii"
+}

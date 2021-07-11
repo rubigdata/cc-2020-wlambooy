@@ -1,0 +1,80 @@
+
+########## DEBUG ##########
+Could not find for rank 81
+########## DEBUG ##########
+
+
+########## DEBUG ##########
+Could not find for rank 743
+########## DEBUG ##########
+
+
+########## DEBUG ##########
+Could not find for rank 755
+########## DEBUG ##########
+
+
+########## DEBUG ##########
+Could not find for rank 821
+########## DEBUG ##########
+
+
+########## DEBUG ##########
+Could not find for rank 833
+########## DEBUG ##########
+
+
+########## DEBUG ##########
+Could not find for rank 967
+########## DEBUG ##########
+
+
+########## DEBUG ##########
+Could not find for rank 1132
+########## DEBUG ##########
+
+
+########## DEBUG ##########
+Could not find for rank 1245
+########## DEBUG ##########
+
+
+########## DEBUG ##########
+Could not find for rank 1522
+########## DEBUG ##########
+
+
+########## DEBUG ##########
+Could not find for rank 1818
+########## DEBUG ##########
+
+
+########## DEBUG ##########
+Could not find for rank 1890
+########## DEBUG ##########
+
+
+########## OUTPUT ##########
+The twenty most used chords in the Top 2000 are:
+(G,91.76783)
+(C,87.98074)
+(D,82.46628)
+(A,63.903236)
+(E,54.852364)
+(F,51.3603)
+(Em,37.205162)
+(Am,33.403305)
+(B,23.326736)
+(Dm,20.574818)
+(Bm,18.050669)
+(Bb,16.533905)
+(F#,13.226496)
+(F#m,12.385718)
+(D7,11.991313)
+(E7,10.993721)
+(A7,10.654924)
+(Am7,9.777315)
+(Gm,9.259473)
+(Bm7,9.140049)
+########## OUTPUT ##########
+
